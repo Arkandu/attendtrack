@@ -1,15 +1,16 @@
 // ============================================
-// ATTENDANCE & LEAVE TRACKER WITH ICLOUD SYNC
+// ATTENDANCE TRACKER PRO - FULL EDIT CAPABILITY
 // ============================================
 
 let db;
 let currentSession = null;
+let currentEditId = null;
 
 // ========== DATABASE SETUP ==========
 
 const openDB = () => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("AttendTrackDB", 2);
+    const request = indexedDB.open("AttendTrackProDB", 3);
     
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
@@ -102,16 +103,25 @@ const deleteAllData = (storeName) => {
   });
 };
 
+const deleteRecord = (storeName, id) => {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([storeName], "readwrite");
+    const store = transaction.objectStore(storeName);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
 // ========== NETWORK STATUS ==========
 
 const isOnline = () => navigator.onLine;
-
 const updateSyncStatus = (status) => {
   const statusDiv = document.getElementById("sync-status");
   if (statusDiv) statusDiv.textContent = status;
 };
 
-// ========== EXPORT TO EXCEL (CSV) ==========
+// ========== EXPORT TO EXCEL ==========
 
 const exportToCSV = (data, filename, type = "attendance") => {
   if (!data || data.length === 0) {
@@ -177,40 +187,24 @@ const backupToICloudDrive = async () => {
     const exportData = {
       version: "2.0",
       exportedAt: new Date().toISOString(),
-      deviceInfo: {
-        userAgent: navigator.userAgent,
-        platform: "iOS PWA"
-      },
       attendance: attendance,
       leaves: leaves,
-      session: session,
-      totalRecords: {
-        attendance: attendance.length,
-        leaves: leaves.length
-      }
+      session: session
     };
     
     const jsonString = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
-    const filename = `attendtrack_backup_${new Date().toISOString().split("T")[0]}.json`;
-    
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download = `attendtrack_backup_${new Date().toISOString().split("T")[0]}.json`;
     a.click();
-    
     URL.revokeObjectURL(url);
     
-    updateSyncStatus("✅ Backup created");
-    setTimeout(() => updateSyncStatus(isOnline() ? "📡 Online" : "📡 Offline"), 2000);
-    
-    showAlert("Backup created! Choose 'Save to Files' and select iCloud Drive.", "success");
+    updateSyncStatus("✅ Backup saved");
+    showAlert("Backup created! Save to iCloud Drive.", "success");
   } catch (error) {
-    console.error("Backup error:", error);
-    updateSyncStatus("❌ Backup failed");
-    showAlert("Backup failed: " + error.message, "error");
+    showAlert("Backup failed: " + error.message, "warning");
   }
 };
 
@@ -231,18 +225,11 @@ const restoreFromICloudDrive = () => {
         const data = JSON.parse(event.target.result);
         let imported = { attendance: 0, leaves: 0 };
         
-        if (!data.version || !data.attendance || !data.leaves) {
-          throw new Error("Invalid backup file format");
-        }
-        
         if (data.attendance && Array.isArray(data.attendance)) {
           const existing = await getAllData("attendance");
           for (let record of data.attendance) {
-            const exists = existing.some(e => 
-              e.checkInTime === record.checkInTime && 
-              e.date === record.date
-            );
-            if (!exists && record.checkInTime) {
+            const exists = existing.some(e => e.checkInTime === record.checkInTime);
+            if (!exists) {
               await addData("attendance", record);
               imported.attendance++;
             }
@@ -253,21 +240,18 @@ const restoreFromICloudDrive = () => {
           const existing = await getAllData("leaves");
           for (let leave of data.leaves) {
             const exists = existing.some(e => e.submittedAt === leave.submittedAt);
-            if (!exists && leave.submittedAt) {
+            if (!exists) {
               await addData("leaves", leave);
               imported.leaves++;
             }
           }
         }
         
-        updateSyncStatus("✅ Restore complete");
-        showAlert(`Restored ${imported.attendance} attendance and ${imported.leaves} leave records!`, "success");
+        updateSyncStatus("✅ Restored");
+        showAlert(`Restored ${imported.attendance} attendance, ${imported.leaves} leaves!`, "success");
         refreshAllDisplays();
-        
       } catch (error) {
-        console.error("Restore error:", error);
-        updateSyncStatus("❌ Restore failed");
-        showAlert("Restore failed: " + error.message, "error");
+        showAlert("Restore failed: Invalid file", "warning");
       }
     };
     reader.readAsText(file);
@@ -277,33 +261,102 @@ const restoreFromICloudDrive = () => {
 };
 
 const clearAllData = async () => {
-  const confirmClear = confirm("⚠️ WARNING: This will delete ALL data. This cannot be undone. Are you sure?");
+  const confirmClear = confirm("⚠️ Delete ALL data? This cannot be undone.");
   if (!confirmClear) return;
   
-  const doubleConfirm = confirm("LAST CHANCE: Are you ABSOLUTELY sure? All your data will be permanently deleted.");
-  if (!doubleConfirm) return;
+  await deleteAllData("attendance");
+  await deleteAllData("leaves");
+  await deleteAllData("session");
+  currentSession = null;
   
-  try {
-    await deleteAllData("attendance");
-    await deleteAllData("leaves");
-    await deleteAllData("session");
-    
-    currentSession = null;
-    await updateData("session", { key: "currentSession", value: null });
-    
-    showAlert("All data has been cleared.", "success");
-    refreshAllDisplays();
-  } catch (error) {
-    console.error("Clear data error:", error);
-    showAlert("Error clearing data: " + error.message, "error");
-  }
+  showAlert("All data cleared", "success");
+  refreshAllDisplays();
 };
 
-// ========== ATTENDANCE FUNCTIONS WITH EDIT ==========
+// ========== EDIT FUNCTIONS ==========
+
+const openEditModal = async (recordId) => {
+  const allAttendance = await getAllData("attendance");
+  const record = allAttendance.find(r => r.id === recordId);
+  
+  if (!record) return;
+  
+  currentEditId = recordId;
+  
+  const checkInInput = document.getElementById("edit-checkin");
+  const checkOutInput = document.getElementById("edit-checkout");
+  
+  // Format datetime-local value
+  const checkInDate = new Date(record.checkInTime);
+  const checkOutDate = record.checkOutTime ? new Date(record.checkOutTime) : null;
+  
+  checkInInput.value = checkInDate.toISOString().slice(0, 16);
+  if (checkOutDate) {
+    checkOutInput.value = checkOutDate.toISOString().slice(0, 16);
+  } else {
+    checkOutInput.value = "";
+  }
+  
+  document.getElementById("editModal").classList.add("active");
+};
+
+const saveEdit = async () => {
+  if (!currentEditId) return;
+  
+  const allAttendance = await getAllData("attendance");
+  const record = allAttendance.find(r => r.id === currentEditId);
+  
+  if (!record) return;
+  
+  const checkInValue = document.getElementById("edit-checkin").value;
+  const checkOutValue = document.getElementById("edit-checkout").value;
+  
+  if (!checkInValue) {
+    showAlert("Check-in time is required", "warning");
+    return;
+  }
+  
+  const newCheckIn = new Date(checkInValue);
+  const newCheckOut = checkOutValue ? new Date(checkOutValue) : null;
+  
+  record.checkInTime = newCheckIn.toISOString();
+  record.checkOutTime = newCheckOut ? newCheckOut.toISOString() : null;
+  record.date = newCheckIn.toISOString().split("T")[0];
+  
+  await updateData("attendance", record);
+  
+  // Update current session if this was the active one
+  if (currentSession && currentSession.checkInTime === record.checkInTime) {
+    if (newCheckOut) {
+      currentSession.checkOutTime = newCheckOut.toISOString();
+      await updateData("session", { key: "currentSession", value: currentSession });
+    }
+  }
+  
+  closeModal();
+  showAlert("Attendance record updated!", "success");
+  refreshAllDisplays();
+};
+
+const deleteRecordHandler = async (recordId) => {
+  const confirmDelete = confirm("Delete this record? This cannot be undone.");
+  if (!confirmDelete) return;
+  
+  await deleteRecord("attendance", recordId);
+  showAlert("Record deleted", "success");
+  refreshAllDisplays();
+};
+
+const closeModal = () => {
+  document.getElementById("editModal").classList.remove("active");
+  currentEditId = null;
+};
+
+// ========== ATTENDANCE FUNCTIONS ==========
 
 const loadCurrentSession = async () => {
   const session = await getData("session", "currentSession");
-  if (session && session.value) {
+  if (session && session.value && !session.value.checkOutTime) {
     currentSession = session.value;
   }
   updateUIForSession();
@@ -322,23 +375,23 @@ const updateUIForSession = () => {
   const statusText = document.getElementById("current-status-text");
   
   if (currentSession && !currentSession.checkOutTime) {
-    statusBadge.textContent = "● Checked In";
+    statusBadge.innerHTML = '<span>●</span> Checked In';
     statusBadge.className = "status-badge status-checked-in";
     checkInBtn.style.display = "none";
     checkOutBtn.style.display = "block";
     statusText.textContent = `Checked in at ${new Date(currentSession.checkInTime).toLocaleTimeString()}`;
   } else {
-    statusBadge.textContent = "● Checked Out";
+    statusBadge.innerHTML = '<span>●</span> Checked Out';
     statusBadge.className = "status-badge status-checked-out";
     checkInBtn.style.display = "block";
     checkOutBtn.style.display = "none";
-    statusText.textContent = "Ready to check in";
+    statusText.textContent = "Ready to start your day";
   }
 };
 
 const checkIn = async () => {
   if (currentSession && !currentSession.checkOutTime) {
-    showAlert("You are already checked in!", "warning");
+    showAlert("Already checked in!", "warning");
     return;
   }
   
@@ -353,13 +406,13 @@ const checkIn = async () => {
   await saveCurrentSession(sessionData);
   await addData("attendance", sessionData);
   
-  showAlert(`Checked in at ${now.toLocaleTimeString()}`, "success");
+  showAlert(`✨ Checked in at ${now.toLocaleTimeString()}`, "success");
   refreshAllDisplays();
 };
 
 const checkOut = async () => {
   if (!currentSession || currentSession.checkOutTime) {
-    showAlert("You are not checked in!", "warning");
+    showAlert("Not checked in!", "warning");
     return;
   }
   
@@ -374,24 +427,9 @@ const checkOut = async () => {
     await updateData("attendance", lastRecord);
   }
   
-  const checkInTime = new Date(currentSession.checkInTime);
-  const duration = Math.round((now - checkInTime) / 1000 / 60);
-  
-  showAlert(`Checked out at ${now.toLocaleTimeString()}. Duration: ${duration} minutes`, "success");
+  const duration = Math.round((now - new Date(currentSession.checkInTime)) / 1000 / 60);
+  showAlert(`🔴 Checked out at ${now.toLocaleTimeString()} (${duration} min)`, "success");
   refreshAllDisplays();
-};
-
-// Edit past attendance
-const editAttendanceRecord = async (recordId, newCheckOutTime) => {
-  const allAttendance = await getAllData("attendance");
-  const record = allAttendance.find(r => r.id === recordId);
-  
-  if (record) {
-    record.checkOutTime = newCheckOutTime;
-    await updateData("attendance", record);
-    showAlert("Attendance record updated!", "success");
-    refreshAllDisplays();
-  }
 };
 
 // ========== LEAVE FUNCTIONS ==========
@@ -402,12 +440,7 @@ const submitLeave = async () => {
   const reason = document.getElementById("leave-reason").value;
   
   if (!start || !end) {
-    showAlert("Please select start and end dates", "warning");
-    return;
-  }
-  
-  if (new Date(start) > new Date(end)) {
-    showAlert("End date must be after start date", "warning");
+    showAlert("Please select dates", "warning");
     return;
   }
   
@@ -429,7 +462,7 @@ const submitLeave = async () => {
   refreshAllDisplays();
 };
 
-// ========== LOAD DATA DISPLAYS ==========
+// ========== LOAD DISPLAYS ==========
 
 const loadTodayActivity = async () => {
   const today = new Date().toISOString().split("T")[0];
@@ -437,16 +470,23 @@ const loadTodayActivity = async () => {
   const activityDiv = document.getElementById("today-activity");
   
   if (todayRecords.length === 0) {
-    activityDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e8e93;">✨ No activity today</div>';
+    activityDiv.innerHTML = '<div class="empty-state">✨ No activity yet today</div>';
   } else {
     let html = "";
     for (let record of todayRecords.reverse()) {
       const checkIn = new Date(record.checkInTime).toLocaleTimeString();
-      const checkOut = record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "Still checked in";
-      html += `<div class="record-item">
-        <div style="font-weight: 600;">✓ Check In: ${checkIn}</div>
-        <div style="color: #8e8e93;">🔴 Check Out: ${checkOut}</div>
-      </div>`;
+      const checkOut = record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "Active";
+      html += `
+        <div class="record-item">
+          <div class="record-header">
+            <span class="record-date">✅ ${checkIn}</span>
+            <div class="record-actions">
+              ${record.checkOutTime ? `<button class="btn-edit btn-icon" onclick="openEditModal(${record.id})">✏️ Edit</button>` : ''}
+            </div>
+          </div>
+          <div class="record-detail">🔴 Check Out: ${checkOut}</div>
+        </div>
+      `;
     }
     activityDiv.innerHTML = html;
   }
@@ -454,14 +494,10 @@ const loadTodayActivity = async () => {
 
 const loadSummaryStats = async () => {
   const allAttendance = await getAllData("attendance");
-  const allLeaves = await getAllData("leaves");
-  
   const now = new Date();
   const thisMonth = now.toISOString().split("T")[0].substring(0, 7);
   
   const thisMonthAttendance = allAttendance.filter(a => a.date.startsWith(thisMonth));
-  const thisMonthLeaves = allLeaves.filter(l => l.startDate.startsWith(thisMonth));
-  const approvedLeaves = thisMonthLeaves.filter(l => l.status === "approved");
   
   const totalMinutes = thisMonthAttendance.reduce((total, record) => {
     if (record.checkOutTime) {
@@ -474,8 +510,7 @@ const loadSummaryStats = async () => {
   
   const hoursWorked = Math.round(totalMinutes / 60 * 10) / 10;
   
-  const statsDiv = document.getElementById("summary-stats");
-  statsDiv.innerHTML = `
+  document.getElementById("summary-stats").innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-number">${thisMonthAttendance.length}</div>
@@ -485,36 +520,8 @@ const loadSummaryStats = async () => {
         <div class="stat-number">${hoursWorked}</div>
         <div class="stat-label">Hours This Month</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">${approvedLeaves.length}</div>
-        <div class="stat-label">Approved Leaves</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">${allAttendance.length}</div>
-        <div class="stat-label">Total Records</div>
-      </div>
     </div>
   `;
-};
-
-const loadPendingLeaves = async () => {
-  const allLeaves = await getAllData("leaves");
-  const pending = allLeaves.filter(l => l.status === "pending").reverse();
-  const pendingDiv = document.getElementById("pending-leaves");
-  
-  if (pending.length === 0) {
-    pendingDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e8e93;">No pending requests</div>';
-  } else {
-    let html = "";
-    for (let leave of pending) {
-      html += `<div class="leave-request">
-        <strong>📅 ${leave.startDate} → ${leave.endDate}</strong><br>
-        📝 ${leave.reason}<br>
-        <span style="color: #ff9500;">⏳ Pending</span>
-      </div>`;
-    }
-    pendingDiv.innerHTML = html;
-  }
 };
 
 const loadAttendanceHistory = async () => {
@@ -522,7 +529,7 @@ const loadAttendanceHistory = async () => {
   const historyDiv = document.getElementById("attendance-history");
   
   if (allAttendance.length === 0) {
-    historyDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e8e93;">No attendance records</div>';
+    historyDiv.innerHTML = '<div class="empty-state">No attendance records</div>';
   } else {
     const grouped = {};
     for (let record of allAttendance) {
@@ -534,18 +541,50 @@ const loadAttendanceHistory = async () => {
     const dates = Object.keys(grouped).sort().reverse();
     for (let date of dates.slice(0, 30)) {
       html += `<div style="margin-bottom: 20px;">
-        <div style="font-weight: 700; font-size: 16px; margin-bottom: 8px;">📆 ${date}</div>`;
+        <div style="font-weight: 700; font-size: 16px; margin-bottom: 12px; color: white;">📆 ${date}</div>`;
       for (let record of grouped[date]) {
         const checkIn = new Date(record.checkInTime).toLocaleTimeString();
         const checkOut = record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "Active";
-        html += `<div class="record-item" style="margin-left: 12px;">
-          <div>✅ ${checkIn} → ${checkOut}</div>
-          <div style="font-size: 12px; color: #8e8e93;">ID: ${record.id}</div>
-        </div>`;
+        html += `
+          <div class="record-item">
+            <div class="record-header">
+              <div>
+                <div>✅ ${checkIn} → ${checkOut}</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px;">ID: ${record.id}</div>
+              </div>
+              <div class="record-actions">
+                <button class="btn-edit btn-icon" onclick="openEditModal(${record.id})">✏️ Edit</button>
+                <button class="btn-edit btn-icon" style="background: linear-gradient(135deg, #ff3b30, #ff2d20);" onclick="deleteRecordHandler(${record.id})">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
       }
       html += `</div>`;
     }
     historyDiv.innerHTML = html;
+  }
+};
+
+const loadPendingLeaves = async () => {
+  const allLeaves = await getAllData("leaves");
+  const pending = allLeaves.filter(l => l.status === "pending").reverse();
+  const pendingDiv = document.getElementById("pending-leaves");
+  
+  if (pending.length === 0) {
+    pendingDiv.innerHTML = '<div class="empty-state">No pending requests</div>';
+  } else {
+    let html = "";
+    for (let leave of pending) {
+      html += `
+        <div class="leave-request">
+          <strong>📅 ${leave.startDate} → ${leave.endDate}</strong>
+          <div style="margin: 8px 0;">📝 ${leave.reason}</div>
+          <span style="color: #ff9500;">⏳ Pending</span>
+        </div>
+      `;
+    }
+    pendingDiv.innerHTML = html;
   }
 };
 
@@ -554,17 +593,19 @@ const loadLeaveHistory = async () => {
   const historyDiv = document.getElementById("leave-history");
   
   if (allLeaves.length === 0) {
-    historyDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #8e8e93;">No leave records</div>';
+    historyDiv.innerHTML = '<div class="empty-state">No leave records</div>';
   } else {
     let html = "";
     for (let leave of allLeaves.reverse()) {
       const statusColor = leave.status === "approved" ? "#34c759" : leave.status === "rejected" ? "#ff3b30" : "#ff9500";
       const statusText = leave.status === "approved" ? "✅ Approved" : leave.status === "rejected" ? "❌ Rejected" : "⏳ Pending";
-      html += `<div class="leave-request" style="border-left-color: ${statusColor}">
-        <strong>📅 ${leave.startDate} → ${leave.endDate}</strong><br>
-        📝 ${leave.reason}<br>
-        <span style="color: ${statusColor};">${statusText}</span>
-      </div>`;
+      html += `
+        <div class="leave-request" style="border-left-color: ${statusColor}">
+          <strong>📅 ${leave.startDate} → ${leave.endDate}</strong>
+          <div style="margin: 8px 0;">📝 ${leave.reason}</div>
+          <span style="color: ${statusColor};">${statusText}</span>
+        </div>
+      `;
     }
     historyDiv.innerHTML = html;
   }
@@ -574,8 +615,7 @@ const loadDataStats = async () => {
   const attendance = await getAllData("attendance");
   const leaves = await getAllData("leaves");
   
-  const statsDiv = document.getElementById("data-stats");
-  statsDiv.innerHTML = `
+  document.getElementById("data-stats").innerHTML = `
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-number">${attendance.length}</div>
@@ -593,10 +633,12 @@ const loadDataStats = async () => {
 
 const initTabs = () => {
   const tabs = document.querySelectorAll(".tab");
-  const attendanceTab = document.getElementById("attendance-tab");
-  const leaveTab = document.getElementById("leave-tab");
-  const historyTab = document.getElementById("history-tab");
-  const backupTab = document.getElementById("backup-tab");
+  const tabsContent = {
+    attendance: document.getElementById("attendance-tab"),
+    leave: document.getElementById("leave-tab"),
+    history: document.getElementById("history-tab"),
+    backup: document.getElementById("backup-tab")
+  };
   
   tabs.forEach(tab => {
     tab.addEventListener("click", () => {
@@ -605,24 +647,23 @@ const initTabs = () => {
       tabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       
-      attendanceTab.style.display = "none";
-      leaveTab.style.display = "none";
-      historyTab.style.display = "none";
-      backupTab.style.display = "none";
+      Object.values(tabsContent).forEach(content => {
+        if (content) content.style.display = "none";
+      });
+      
+      if (tabsContent[tabName]) {
+        tabsContent[tabName].style.display = "block";
+      }
       
       if (tabName === "attendance") {
-        attendanceTab.style.display = "block";
         loadTodayActivity();
         loadSummaryStats();
       } else if (tabName === "leave") {
-        leaveTab.style.display = "block";
         loadPendingLeaves();
       } else if (tabName === "history") {
-        historyTab.style.display = "block";
         loadAttendanceHistory();
         loadLeaveHistory();
       } else if (tabName === "backup") {
-        backupTab.style.display = "block";
         loadDataStats();
       }
     });
@@ -635,12 +676,8 @@ const showAlert = (message, type) => {
   const alertDiv = document.createElement("div");
   alertDiv.className = `alert alert-${type}`;
   alertDiv.textContent = message;
-  
   document.body.appendChild(alertDiv);
-  
-  setTimeout(() => {
-    alertDiv.remove();
-  }, 3000);
+  setTimeout(() => alertDiv.remove(), 3000);
 };
 
 const refreshAllDisplays = () => {
@@ -660,6 +697,10 @@ const updateClock = () => {
   }
 };
 
+// Make functions global for onclick handlers
+window.openEditModal = openEditModal;
+window.deleteRecordHandler = deleteRecordHandler;
+
 // ========== INITIALIZATION ==========
 
 const init = async () => {
@@ -674,21 +715,20 @@ const init = async () => {
   document.getElementById("backup-to-icloud").addEventListener("click", backupToICloudDrive);
   document.getElementById("restore-from-icloud").addEventListener("click", restoreFromICloudDrive);
   document.getElementById("clear-all-data").addEventListener("click", clearAllData);
-  
   document.getElementById("export-attendance-btn").addEventListener("click", async () => {
     const data = await getAllData("attendance");
     exportToCSV(data, "attendance_export", "attendance");
   });
-  
   document.getElementById("export-leave-btn").addEventListener("click", async () => {
     const data = await getAllData("leaves");
     exportToCSV(data, "leave_export", "leave");
   });
+  document.getElementById("saveEditBtn").addEventListener("click", saveEdit);
+  document.getElementById("closeModalBtn").addEventListener("click", closeModal);
   
   setInterval(updateClock, 1000);
   updateClock();
-  
-  updateSyncStatus(isOnline() ? "📡 Online" : "📡 Offline");
+  updateSyncStatus(isOnline() ? "✨ Online" : "📡 Offline");
 };
 
 init();
