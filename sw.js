@@ -2,7 +2,7 @@
 // SERVICE WORKER - ENABLES OFFLINE FUNCTIONALITY
 // ============================================
 
-const CACHE_NAME = 'attendtrack-v3';
+const CACHE_NAME = 'attendtrack-v5';
 const OFFLINE_URL = 'index.html';
 
 // Files to cache for offline use
