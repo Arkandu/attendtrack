@@ -11,14 +11,16 @@
   <title>Attendance & Leave Tracker</title>
   <style>
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: #f5f5f5;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       padding: 20px;
       padding-bottom: 80px;
     }
@@ -28,221 +30,286 @@
       margin: 0 auto;
     }
 
-    h1 {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      color: #1c1c1e;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
     }
 
     .card {
-      background: white;
-      border-radius: 16px;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
       padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .status-card {
+      text-align: center;
+      background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
     }
 
     .status-badge {
       display: inline-block;
-      padding: 6px 12px;
-      border-radius: 20px;
+      padding: 8px 16px;
+      border-radius: 40px;
       font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
     }
 
     .status-checked-in {
-      background: #34c759;
+      background: linear-gradient(135deg, #34c759, #30b350);
       color: white;
+      box-shadow: 0 4px 12px rgba(52,199,89,0.3);
     }
 
     .status-checked-out {
-      background: #ff3b30;
+      background: linear-gradient(135deg, #ff3b30, #ff2d20);
       color: white;
+      box-shadow: 0 4px 12px rgba(255,59,48,0.3);
     }
 
     .time-display {
-      font-size: 36px;
-      font-weight: 700;
-      margin: 10px 0;
+      font-size: 48px;
+      font-weight: 800;
       font-family: monospace;
+      margin: 16px 0;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .btn {
-      background: #007aff;
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       border: none;
-      padding: 14px 24px;
-      border-radius: 12px;
+      padding: 16px 24px;
+      border-radius: 40px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
-      margin-top: 10px;
-      transition: opacity 0.2s;
+      margin-top: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(102,126,234,0.3);
     }
 
     .btn:active {
-      opacity: 0.7;
+      transform: scale(0.98);
+      box-shadow: 0 2px 6px rgba(102,126,234,0.3);
     }
 
     .btn-danger {
-      background: #ff3b30;
+      background: linear-gradient(135deg, #ff3b30, #ff2d20);
+      box-shadow: 0 4px 12px rgba(255,59,48,0.3);
     }
 
     .btn-secondary {
-      background: #8e8e93;
+      background: linear-gradient(135deg, #8e8e93, #6c6c70);
+      box-shadow: 0 4px 12px rgba(142,142,147,0.3);
     }
 
     .btn-icloud {
-      background: #5856d6;
-    }
-
-    .record-item {
-      border-bottom: 1px solid #e5e5ea;
-      padding: 12px 0;
-    }
-
-    .record-date {
-      font-weight: 600;
-      color: #1c1c1e;
-    }
-
-    .record-detail {
-      font-size: 14px;
-      color: #8e8e93;
-      margin-top: 4px;
-    }
-
-    .leave-request {
-      background: #fff9e6;
-      border-left: 4px solid #ff9500;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 8px;
+      background: linear-gradient(135deg, #5856d6, #4c4ab3);
+      box-shadow: 0 4px 12px rgba(88,86,214,0.3);
     }
 
     .nav-tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 20px;
-      background: white;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
       padding: 8px;
-      border-radius: 32px;
+      border-radius: 60px;
     }
 
     .tab {
       flex: 1;
       text-align: center;
-      padding: 10px;
-      border-radius: 24px;
-      font-weight: 500;
+      padding: 12px;
+      border-radius: 40px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s;
+      color: white;
     }
 
     .tab.active {
-      background: #007aff;
-      color: white;
+      background: white;
+      color: #667eea;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .sync-status {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      z-index: 1000;
+    .record-item {
+      border-bottom: 1px solid #e5e5ea;
+      padding: 12px 0;
+      transition: background 0.2s;
+    }
+
+    .record-item:hover {
+      background: #f8f9fa;
+      padding-left: 8px;
+    }
+
+    .leave-request {
+      background: linear-gradient(135deg, #fff9e6, #fff5d9);
+      border-left: 4px solid #ff9500;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 12px;
     }
 
     input, select, textarea {
       width: 100%;
-      padding: 12px;
-      border: 1px solid #e5e5ea;
-      border-radius: 12px;
+      padding: 14px;
+      border: 2px solid #e5e5ea;
+      border-radius: 16px;
       font-size: 16px;
       margin-bottom: 12px;
       font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
     }
 
     label {
-      font-weight: 500;
-      margin-bottom: 6px;
+      font-weight: 600;
+      margin-bottom: 8px;
       display: block;
+      color: #1c1c1e;
     }
 
-    .button-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .button-group .btn {
-      margin-top: 0;
+    .sync-status {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 12px;
+      z-index: 1000;
+      font-weight: 500;
     }
 
     .alert {
-      padding: 12px;
-      border-radius: 12px;
-      margin-bottom: 15px;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      border-radius: 16px;
       font-size: 14px;
+      font-weight: 500;
+      z-index: 10000;
+      animation: slideDown 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
     }
 
     .alert-success {
-      background: #e8f5e9;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
+      background: #34c759;
+      color: white;
     }
 
     .alert-warning {
-      background: #fff3e0;
-      color: #ef6c00;
-      border: 1px solid #ffcc80;
+      background: #ff9500;
+      color: white;
     }
 
-    .hidden {
-      display: none;
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #f8f9fa, #fff);
+      padding: 12px;
+      border-radius: 16px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 800;
+      color: #667eea;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>
-      <span>📋</span>
-      AttendTrack
-    </h1>
+    <div class="header">
+      <h1>📋 AttendTrack</h1>
+      <p>Elegant Attendance Management</p>
+    </div>
 
     <div class="nav-tabs">
-      <div class="tab active" data-tab="attendance">Attendance</div>
-      <div class="tab" data-tab="leave">Leave</div>
-      <div class="tab" data-tab="history">History</div>
-      <div class="tab" data-tab="backup">Backup</div>
+      <div class="tab active" data-tab="attendance">✨ Check In/Out</div>
+      <div class="tab" data-tab="leave">📝 Leave</div>
+      <div class="tab" data-tab="history">📊 History</div>
+      <div class="tab" data-tab="backup">☁️ Backup</div>
     </div>
 
     <!-- Attendance Tab -->
     <div id="attendance-tab">
-      <div class="card">
+      <div class="card status-card">
         <div id="status-badge" class="status-badge status-checked-out">● Checked Out</div>
-        <div id="current-status-text">You are currently checked out</div>
+        <div id="current-status-text" style="color: #6c6c70;">Ready to check in</div>
         <div id="current-time" class="time-display">--:--:--</div>
-        <button id="check-in-btn" class="btn">✅ Check In</button>
+        <button id="check-in-btn" class="btn">✨ Check In</button>
         <button id="check-out-btn" class="btn btn-danger" style="display:none;">🔴 Check Out</button>
       </div>
 
       <div class="card">
-        <h3>📊 Today's Activity</h3>
+        <h3 style="margin-bottom: 16px;">📊 Today's Activity</h3>
         <div id="today-activity">No activity yet</div>
       </div>
 
       <div class="card">
-        <h3>📈 Summary</h3>
+        <h3 style="margin-bottom: 16px;">📈 Monthly Summary</h3>
         <div id="summary-stats">Loading...</div>
       </div>
     </div>
@@ -250,18 +317,18 @@
     <!-- Leave Tab -->
     <div id="leave-tab" style="display:none;">
       <div class="card">
-        <h3>📝 Request Leave</h3>
+        <h3 style="margin-bottom: 16px;">📝 Request Leave</h3>
         <label>Start Date</label>
         <input type="date" id="leave-start">
         <label>End Date</label>
         <input type="date" id="leave-end">
         <label>Reason</label>
         <textarea id="leave-reason" rows="3" placeholder="e.g., Sick, Vacation, Personal"></textarea>
-        <button id="submit-leave-btn" class="btn">Submit Request</button>
+        <button id="submit-leave-btn" class="btn">📤 Submit Request</button>
       </div>
 
       <div class="card">
-        <h3>⏳ Pending Requests</h3>
+        <h3 style="margin-bottom: 16px;">⏳ Pending Requests</h3>
         <div id="pending-leaves">No pending requests</div>
       </div>
     </div>
@@ -269,11 +336,17 @@
     <!-- History Tab -->
     <div id="history-tab" style="display:none;">
       <div class="card">
-        <h3>📜 Attendance History</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3>📜 Attendance History</h3>
+          <button id="export-attendance-btn" class="btn-secondary" style="width: auto; padding: 8px 16px; margin: 0;">📎 Export</button>
+        </div>
         <div id="attendance-history">Loading...</div>
       </div>
       <div class="card">
-        <h3>📋 Leave History</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3>📋 Leave History</h3>
+          <button id="export-leave-btn" class="btn-secondary" style="width: auto; padding: 8px 16px; margin: 0;">📎 Export</button>
+        </div>
         <div id="leave-history">Loading...</div>
       </div>
     </div>
@@ -281,23 +354,23 @@
     <!-- Backup Tab -->
     <div id="backup-tab" style="display:none;">
       <div class="card">
-        <h3>☁️ iCloud Drive Backup</h3>
-        <p style="margin-bottom: 15px; color: #666;">Save your data to iCloud Drive or restore from a backup. Works across all your Apple devices.</p>
+        <h3 style="margin-bottom: 16px;">☁️ iCloud Drive Backup</h3>
+        <p style="margin-bottom: 20px; color: #6c6c70;">Save your data to iCloud Drive or restore from a backup.</p>
         
         <button id="backup-to-icloud" class="btn btn-icloud">💾 Backup to iCloud Drive</button>
-        <button id="restore-from-icloud" class="btn btn-icloud" style="margin-top: 10px;">🔄 Restore from iCloud Drive</button>
+        <button id="restore-from-icloud" class="btn btn-icloud" style="margin-top: 12px;">🔄 Restore from iCloud Drive</button>
         
-        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e5ea;">
-          <h4>📊 Data Statistics</h4>
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e5ea;">
+          <h4 style="margin-bottom: 12px;">📊 Data Statistics</h4>
           <div id="data-stats">Loading...</div>
         </div>
         
-        <button id="clear-all-data" class="btn btn-secondary" style="margin-top: 20px; background-color: #ff3b30;">⚠️ Clear All Data</button>
+        <button id="clear-all-data" class="btn-secondary" style="margin-top: 20px; background: linear-gradient(135deg, #ff3b30, #ff2d20);">⚠️ Clear All Data</button>
       </div>
     </div>
   </div>
 
-  <div id="sync-status" class="sync-status">📡 Offline</div>
+  <div id="sync-status" class="sync-status">📡 Ready</div>
 
   <script src="app.js"></script>
 </body>
