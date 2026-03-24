@@ -1,11 +1,11 @@
 {
-  "name": "Attendance & Leave Tracker",
+  "name": "AttendTrack Pro",
   "short_name": "AttendTrack",
-  "description": "Track attendance and leave requests with iCloud backup",
+  "description": "Elegant Attendance & Leave Tracker with iCloud Backup",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#007aff",
-  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "background_color": "#667eea",
   "icons": [
     {
       "src": "https://emojicdn.elk.sh/📋?style=apple&size=192",
