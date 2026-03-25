@@ -1,8 +1,13 @@
 // ============================================
 // ATTENDANCE SYSTEM WITH LOCATION TRACKING
 // AUTO-SYNC EVERY 15 MINUTES
-// DEVICE REMEMBER ME FUNCTIONALITY
+// GOOGLE DRIVE FOLDER: 1oMXzsWYCn9Z1JW2UYySzug5U2lCm7U6E
 // ============================================
+
+// ========== GOOGLE DRIVE CONFIGURATION ==========
+// YOUR GOOGLE DRIVE FOLDER ID (from your URL)
+const GOOGLE_DRIVE_FOLDER_ID = "1oMXzsWYCn9Z1JW2UYySzug5U2lCm7U6E";
+const BACKUP_FILE_NAME = "attendtrack_master_data.json";
 
 // ========== DATABASE SETUP ==========
 let db;
@@ -216,22 +221,17 @@ const startNextSyncTimer = () => {
 };
 
 // ========== GOOGLE DRIVE SYNC ==========
-const getDriveFileName = () => {
-  return `attendtrack_master_data.json`;
-};
-
 const syncToGoogleDrive = async (showMessage = true) => {
   if (!navigator.onLine) {
     if (showMessage) showAlert("No internet connection. Will sync when online.", "warning");
     return false;
   }
   
-  updateSyncStatus("📤 Syncing...");
+  updateSyncStatus("📤 Syncing to Google Drive...");
   
   const attendance = await getAllData("attendance");
   const leaves = await getAllData("leaves");
   const users = await getAllData("users");
-  const deviceInfo = await getData("deviceInfo", "registeredDevices");
   
   const exportData = {
     lastSync: new Date().toISOString(),
@@ -239,30 +239,34 @@ const syncToGoogleDrive = async (showMessage = true) => {
     users: users,
     attendance: attendance,
     leaves: leaves,
-    deviceInfo: deviceInfo ? deviceInfo.value : [],
+    deviceId: deviceId,
+    googleDriveFolderId: GOOGLE_DRIVE_FOLDER_ID,
     stats: {
       totalUsers: users.length,
       totalAttendance: attendance.length,
       totalLeaves: leaves.length,
-      lastSyncBy: currentUser ? currentUser.email : "system",
-      deviceId: deviceId
+      lastSyncBy: currentUser ? currentUser.email : "system"
     }
   };
   
   const jsonString = JSON.stringify(exportData, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
   const url = URL.createObjectURL(blob);
+  
   const a = document.createElement("a");
   a.href = url;
-  a.download = getDriveFileName();
+  a.download = BACKUP_FILE_NAME;
   a.click();
+  
   URL.revokeObjectURL(url);
   
   const newSyncTime = new Date().toISOString();
   await saveSyncInfo(newSyncTime, syncCount + 1);
   
-  updateSyncStatus("✅ Synced");
-  if (showMessage) showAlert("Data synced to Google Drive!", "success");
+  updateSyncStatus("✅ Save to Google Drive");
+  if (showMessage) {
+    showAlert(`Data ready! Save "${BACKUP_FILE_NAME}" to your Google Drive folder.`, "success");
+  }
   return true;
 };
 
@@ -275,7 +279,7 @@ const restoreFromGoogleDrive = async () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    updateSyncStatus("📥 Restoring...");
+    updateSyncStatus("📥 Restoring from Drive...");
     
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -357,7 +361,6 @@ const restoreFromGoogleDrive = async () => {
 const startAutoSync = () => {
   if (syncInterval) clearInterval(syncInterval);
   
-  // Sync every 15 minutes (15 * 60 * 1000 = 900000 ms)
   syncInterval = setInterval(async () => {
     if (navigator.onLine && currentUser) {
       console.log("Auto-sync triggered (15 min interval)...");
@@ -410,10 +413,7 @@ const isDeviceAuthorized = async (email) => {
   const devices = registeredDevices ? registeredDevices.value : [];
   const deviceRecord = devices.find(d => d.email === email);
   
-  // If no device record exists, this is first login on any device
   if (!deviceRecord) return true;
-  
-  // Check if this device is authorized
   return deviceRecord.deviceId === deviceId;
 };
 
@@ -466,7 +466,6 @@ const login = async () => {
     return;
   }
   
-  // Check device authorization
   const authorized = await isDeviceAuthorized(email);
   if (!authorized) {
     const confirmNewDevice = confirm("This is a new device. Would you like to authorize it? All data will sync from Google Drive.");
@@ -475,8 +474,6 @@ const login = async () => {
   
   currentUser = user;
   localStorage.setItem("currentUser", JSON.stringify(user));
-  
-  // Save device for this user
   await saveDeviceForUser(email);
   
   document.getElementById("login-section").style.display = "none";
@@ -493,22 +490,15 @@ const login = async () => {
   loadUserData();
   loadCurrentSession();
   await loadSyncInfo();
-  
-  // Start auto-sync
   startAutoSync();
   
-  // Try to restore from Drive if this is a new device
   const lastSync = await getData("syncInfo", "lastSync");
   if (!lastSync && navigator.onLine) {
     const restoreConfirm = confirm("Welcome! Would you like to restore data from Google Drive backup?");
-    if (restoreConfirm) {
-      restoreFromGoogleDrive();
-    }
+    if (restoreConfirm) restoreFromGoogleDrive();
   } else if (!authorized && navigator.onLine) {
     const restoreConfirm = confirm("New device detected! Restore data from Google Drive?");
-    if (restoreConfirm) {
-      restoreFromGoogleDrive();
-    }
+    if (restoreConfirm) restoreFromGoogleDrive();
   }
   
   showAlert(`Welcome ${user.name}! Auto-sync active every 15 minutes.`, "success");
@@ -551,7 +541,6 @@ const logout = () => {
   currentUser = null;
   currentSession = null;
   localStorage.removeItem("currentUser");
-  // Keep deviceId for next login
   document.getElementById("login-section").style.display = "block";
   document.getElementById("app-section").style.display = "none";
   showAlert("Logged out successfully", "success");
@@ -757,7 +746,6 @@ const loadAdminPanel = async () => {
   const pendingUsers = users.filter(u => u.status === "pending");
   const approvedUsers = users.filter(u => u.status === "approved" && u.role !== "admin");
   
-  // Admin's personal attendance
   const adminAttendance = attendance.filter(a => a.email === currentUser.email).reverse().slice(0, 5);
   const adminPersonalDiv = document.getElementById("admin-personal-attendance");
   if (adminAttendance.length === 0) {
@@ -777,7 +765,6 @@ const loadAdminPanel = async () => {
     adminPersonalDiv.innerHTML = html;
   }
   
-  // Pending users
   const pendingDiv = document.getElementById("pending-users");
   if (pendingUsers.length === 0) {
     pendingDiv.innerHTML = '<div class="empty-state">No pending user approvals</div>';
@@ -801,7 +788,6 @@ const loadAdminPanel = async () => {
     pendingDiv.innerHTML = html;
   }
   
-  // All users
   const usersDiv = document.getElementById("all-users");
   let usersHtml = "";
   for (let user of approvedUsers) {
@@ -819,7 +805,6 @@ const loadAdminPanel = async () => {
   }
   usersDiv.innerHTML = usersHtml || '<div class="empty-state">No users found</div>';
   
-  // All attendance with location
   const attendanceDiv = document.getElementById("all-attendance");
   let attendanceHtml = "";
   for (let record of attendance.reverse().slice(0, 50)) {
@@ -831,13 +816,11 @@ const loadAdminPanel = async () => {
         <div>✅ ${new Date(record.checkInTime).toLocaleTimeString()}</div>
         <div>🔴 ${record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : "Active"}</div>
         ${record.checkInLocation ? `<div class="location-badge">📍 In: ${record.checkInLocation.lat.toFixed(4)}, ${record.checkInLocation.lng.toFixed(4)}</div>` : ''}
-        ${record.checkOutLocation ? `<div class="location-badge">📍 Out: ${record.checkOutLocation.lat.toFixed(4)}, ${record.checkOutLocation.lng.toFixed(4)}</div>` : ''}
       </div>
     `;
   }
   attendanceDiv.innerHTML = attendanceHtml || '<div class="empty-state">No attendance records</div>';
   
-  // All leaves
   const leavesDiv = document.getElementById("all-leaves");
   let leavesHtml = "";
   for (let leave of leaves.reverse().slice(0, 50)) {
@@ -914,7 +897,6 @@ const loadUserData = async () => {
   const userAttendance = allAttendance.filter(a => a.email === currentUser.email);
   const userLeaves = await getDataByIndex("leaves", "email", currentUser.email);
   
-  // Today's activity
   const today = new Date().toISOString().split("T")[0];
   const todayRecords = userAttendance.filter(r => r.date === today);
   const todayDiv = document.getElementById("today-activity");
@@ -934,7 +916,6 @@ const loadUserData = async () => {
     todayDiv.innerHTML = html;
   }
   
-  // Monthly stats
   const thisMonth = today.substring(0, 7);
   const thisMonthRecords = userAttendance.filter(r => r.date.startsWith(thisMonth) && r.checkOutTime);
   const totalMinutes = thisMonthRecords.reduce((total, r) => {
@@ -951,7 +932,6 @@ const loadUserData = async () => {
     </div>
   `;
   
-  // Attendance history with location
   const historyDiv = document.getElementById("attendance-history");
   if (userAttendance.length === 0) {
     historyDiv.innerHTML = '<div class="empty-state">No attendance records</div>';
@@ -970,7 +950,6 @@ const loadUserData = async () => {
     historyDiv.innerHTML = html;
   }
   
-  // Leave history
   const leavesDiv = document.getElementById("leave-history");
   if (userLeaves.length === 0) {
     leavesDiv.innerHTML = '<div class="empty-state">No leave records</div>';
@@ -989,7 +968,6 @@ const loadUserData = async () => {
     leavesDiv.innerHTML = html;
   }
   
-  // Pending leaves
   const pendingLeaves = userLeaves.filter(l => l.status === "pending");
   const pendingDiv = document.getElementById("pending-leaves");
   if (pendingLeaves.length === 0) {
@@ -1070,7 +1048,8 @@ const exportAllData = async () => {
     users: users,
     attendance: attendance,
     leaves: leaves,
-    deviceId: deviceId
+    deviceId: deviceId,
+    googleDriveFolderId: GOOGLE_DRIVE_FOLDER_ID
   };
   
   const jsonString = JSON.stringify(exportData, null, 2);
@@ -1121,17 +1100,12 @@ const init = async () => {
   setInterval(updateClock, 1000);
   updateClock();
   
-  // Set device ID display
-  document.getElementById("device-id-display")?.setAttribute("style", "font-size: 10px; color: #999;");
-  
-  // Check saved login (Remember Me)
   const savedUser = localStorage.getItem("currentUser");
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
     const users = await getAllData("users");
     const userExists = users.find(u => u.email === currentUser.email && u.status === "approved");
     if (userExists) {
-      // Check if device is still authorized
       const authorized = await isDeviceAuthorized(currentUser.email);
       if (authorized) {
         currentUser = userExists;
@@ -1157,13 +1131,11 @@ const init = async () => {
     }
   }
   
-  // Check if admin exists
   const adminExists = await checkAdminExists();
   if (!adminExists) {
     document.getElementById("admin-setup").style.display = "block";
   }
   
-  // Event listeners
   document.getElementById("login-btn")?.addEventListener("click", login);
   document.getElementById("register-btn")?.addEventListener("click", register);
   document.getElementById("show-register-btn")?.addEventListener("click", () => {
@@ -1185,7 +1157,6 @@ const init = async () => {
   document.getElementById("restore-from-drive-btn")?.addEventListener("click", restoreFromGoogleDrive);
   document.getElementById("export-all-data")?.addEventListener("click", exportAllData);
   
-  // Online/Offline listeners
   window.addEventListener("online", async () => {
     updateSyncStatus("✨ Online");
     showAlert("Back online! Syncing...", "success");
@@ -1197,7 +1168,6 @@ const init = async () => {
     showAlert("Offline mode - will sync when online", "warning");
   });
   
-  // Initial location status
   updateLocationStatus("📍 Ready - tap Check In/Out");
 };
 
