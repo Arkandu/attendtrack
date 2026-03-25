@@ -6,341 +6,175 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="AttendTrack">
-  <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/✨?style=apple">
+  <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/📍?style=apple">
   <link rel="manifest" href="manifest.json">
-  <title>AttendTrack Pro | Modern Attendance Tracker</title>
+  <title>AttendTrack | Location-Based Attendance</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', Helvetica, Arial, sans-serif;
-      background: radial-gradient(circle at 20% 30%, rgba(15, 25, 45, 1) 0%, rgba(10, 20, 35, 1) 50%, rgba(5, 15, 25, 1) 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
       padding: 20px;
       padding-bottom: 100px;
-      position: relative;
     }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at 80% 20%, rgba(100, 108, 255, 0.15) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
+    .container { max-width: 600px; margin: 0 auto; }
     .glass-card {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
       padding: 24px;
       margin-bottom: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
-
-    .header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
+    .header { text-align: center; margin-bottom: 24px; }
     .header h1 {
-      font-size: 42px;
-      font-weight: 800;
-      background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #c4b5fd 100%);
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
     }
-
-    .header p {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-    }
-
     .nav-tabs {
       display: flex;
       gap: 8px;
-      margin-bottom: 24px;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
+      margin-bottom: 20px;
+      background: white;
       padding: 6px;
-      border-radius: 60px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-
     .tab {
       flex: 1;
       text-align: center;
-      padding: 12px 8px;
+      padding: 10px;
       border-radius: 40px;
       font-weight: 600;
-      font-size: 14px;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      color: rgba(255, 255, 255, 0.7);
+      color: #666;
     }
-
-    .tab.active {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+    .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      border: none;
+      padding: 14px 20px;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 12px;
     }
-
-    .status-card {
-      text-align: center;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+    .btn-danger { background: linear-gradient(135deg, #ff3b30, #ff2d20); }
+    .btn-secondary { background: #8e8e93; }
+    .btn-success { background: linear-gradient(135deg, #34c759, #30b350); }
+    .btn-google { background: #4285f4; }
+    .btn-location { background: linear-gradient(135deg, #5856d6, #4c4ab3); }
+    input, textarea, select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      font-size: 16px;
+      margin-bottom: 12px;
     }
-
+    label { font-weight: 600; margin-bottom: 6px; display: block; color: #333; }
     .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-block;
       padding: 8px 20px;
       border-radius: 40px;
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
-
-    .status-checked-in {
-      background: linear-gradient(135deg, #34c759, #30b350);
-      color: white;
-      box-shadow: 0 4px 20px rgba(52, 199, 89, 0.3);
-    }
-
-    .status-checked-out {
-      background: linear-gradient(135deg, #ff3b30, #ff2d20);
-      color: white;
-      box-shadow: 0 4px 20px rgba(255, 59, 48, 0.3);
-    }
-
+    .status-checked-in { background: #34c759; color: white; }
+    .status-checked-out { background: #ff3b30; color: white; }
     .time-display {
-      font-size: 56px;
-      font-weight: 800;
-      font-family: 'SF Mono', monospace;
-      margin: 20px 0;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #fff, #a5b4fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 48px;
+      font-weight: 700;
+      font-family: monospace;
+      margin: 16px 0;
+      color: #333;
     }
-
-    .btn {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
-      color: white;
-      border: none;
-      padding: 16px 24px;
-      border-radius: 40px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn:active {
-      transform: scale(0.97);
-    }
-
-    .btn-danger {
-      background: linear-gradient(135deg, #ff3b30, #ff2d20);
-      box-shadow: 0 4px 15px rgba(255, 59, 48, 0.3);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      box-shadow: none;
-    }
-
-    .btn-edit {
-      background: linear-gradient(135deg, #ff9500, #ff7e00);
-      box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);
-      padding: 8px 16px;
-      font-size: 13px;
-      width: auto;
-    }
-
     .record-item {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 16px;
-      margin-bottom: 12px;
-      transition: all 0.3s ease;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
     }
-
-    .record-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+    .location-badge {
+      background: #e9ecef;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      display: inline-block;
+      margin-top: 6px;
     }
-
-    .record-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .record-detail {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-      margin-top: 8px;
-    }
-
     .leave-request {
-      background: rgba(255, 255, 255, 0.05);
+      background: #fff9e6;
       border-left: 4px solid #ff9500;
-      padding: 16px;
-      margin-bottom: 12px;
-      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 12px;
     }
-
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
-      margin-top: 16px;
+      margin-top: 12px;
     }
-
     .stat-card {
-      background: rgba(255, 255, 255, 0.05);
+      background: #f8f9fa;
       padding: 16px;
-      border-radius: 20px;
+      border-radius: 16px;
       text-align: center;
     }
-
-    .stat-number {
-      font-size: 32px;
-      font-weight: 800;
-      background: linear-gradient(135deg, #fff, #a5b4fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-top: 4px;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(20px);
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: rgba(20, 30, 45, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 32px;
-      padding: 24px;
-      max-width: 400px;
-      width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .modal h3 {
-      color: white;
-      margin-bottom: 20px;
-    }
-
-    .modal-buttons {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 24px;
-      font-size: 16px;
-      color: white;
-      margin-bottom: 14px;
-    }
-
-    input:focus, textarea:focus {
-      outline: none;
-      border-color: rgba(102, 126, 234, 0.8);
-    }
-
-    label {
-      font-weight: 600;
-      margin-bottom: 8px;
-      display: block;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 14px;
-    }
-
-    h3 {
-      color: white;
-      font-size: 20px;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
+    .stat-number { font-size: 28px; font-weight: 800; color: #667eea; }
+    .stat-label { font-size: 12px; color: #666; margin-top: 4px; }
+    .user-info {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 24px;
       margin-bottom: 16px;
     }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: rgba(255, 255, 255, 0.5);
+    .user-email { font-weight: 600; color: #333; }
+    .user-role {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #e9ecef;
+      margin-top: 4px;
     }
-
+    .logout-btn {
+      background: #ff3b30;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .pending-user {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
     .sync-status {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(10px);
-      padding: 8px 16px;
-      border-radius: 40px;
-      font-size: 12px;
+      background: rgba(0,0,0,0.7);
       color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
       z-index: 1000;
     }
-
     .alert {
       position: fixed;
       top: 20px;
@@ -348,195 +182,221 @@
       right: 20px;
       max-width: 400px;
       margin: 0 auto;
-      padding: 14px 20px;
-      border-radius: 24px;
+      padding: 12px 16px;
+      border-radius: 16px;
       font-size: 14px;
-      font-weight: 500;
       z-index: 10001;
       animation: slideDown 0.3s ease;
     }
-
     @keyframes slideDown {
-      from {
-        transform: translateY(-100px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateY(-100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
-
-    .alert-success {
-      background: rgba(52, 199, 89, 0.9);
-      color: white;
+    .alert-success { background: #34c759; color: white; }
+    .alert-warning { background: #ff9500; color: white; }
+    .alert-error { background: #ff3b30; color: white; }
+    .alert-info { background: #5856d6; color: white; }
+    .empty-state { text-align: center; padding: 40px; color: #999; }
+    h3 { margin-bottom: 16px; color: #333; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .btn-small { width: auto; padding: 8px 16px; margin: 0; font-size: 13px; }
+    .btn-approve { background: #34c759; padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
+    .btn-reject { background: #ff3b30; padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
+    .flex { display: flex; gap: 8px; }
+    .mt-2 { margin-top: 8px; }
+    .last-sync { font-size: 11px; color: #666; margin-top: 8px; text-align: center; }
+    .location-info {
+      background: #f0f0f0;
+      padding: 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-top: 10px;
+      word-break: break-all;
     }
-
-    .alert-warning {
-      background: rgba(255, 149, 0, 0.9);
-      color: white;
+    .device-id {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>✨ AttendTrack</h1>
-      <p>Modern Attendance Management</p>
-    </div>
-
-    <div class="nav-tabs">
-      <div class="tab active" data-tab="attendance">🎯 Check In/Out</div>
-      <div class="tab" data-tab="leave">📝 Leave</div>
-      <div class="tab" data-tab="history">📊 Records</div>
-      <div class="tab" data-tab="backup">☁️ Backup</div>
-    </div>
-
-    <div id="attendance-tab">
-      <div class="glass-card status-card">
-        <div id="status-badge" class="status-badge status-checked-out">
-          <span>●</span> Checked Out
-        </div>
-        <div id="current-status-text" style="color: rgba(255,255,255,0.7);">Ready to start your day</div>
-        <div id="current-time" class="time-display">--:--:--</div>
-        <button id="check-in-btn" class="btn">✨ Check In</button>
-        <button id="check-out-btn" class="btn btn-danger" style="display:none;">🔴 Check Out</button>
-      </div>
-
+    <!-- Login Section -->
+    <div id="login-section">
       <div class="glass-card">
-        <div class="section-title">
-          <h3>📊 Today's Activity</h3>
+        <div class="header">
+          <h1>📍 AttendTrack</h1>
+          <p style="color: #666;">Location-Based Attendance System</p>
+          <p style="color: #999; font-size: 12px; margin-top: 8px;">Auto-sync every 15 minutes | Location tracking enabled</p>
         </div>
-        <div id="today-activity">
-          <div class="empty-state">✨ No activity yet today</div>
-        </div>
-      </div>
-
-      <div class="glass-card">
-        <div class="section-title">
-          <h3>📈 Monthly Insights</h3>
-        </div>
-        <div id="summary-stats">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-number">0</div>
-              <div class="stat-label">Days Worked</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">0</div>
-              <div class="stat-label">Hours</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="leave-tab" style="display:none;">
-      <div class="glass-card">
-        <h3>📝 Request Time Off</h3>
-        <label>Start Date</label>
-        <input type="date" id="leave-start">
-        <label>End Date</label>
-        <input type="date" id="leave-end">
-        <label>Reason</label>
-        <textarea id="leave-reason" rows="3" placeholder="Sick, Vacation, Personal..."></textarea>
-        <button id="submit-leave-btn" class="btn">📤 Submit Request</button>
-      </div>
-
-      <div class="glass-card">
-        <h3>⏳ Pending Requests</h3>
-        <div id="pending-leaves">
-          <div class="empty-state">No pending requests</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="history-tab" style="display:none;">
-      <div class="glass-card">
-        <div class="section-title">
-          <h3>📜 Attendance History</h3>
-          <button id="export-attendance-btn" class="btn-secondary" style="width: auto; padding: 8px 16px;">📎 Export</button>
-        </div>
-        <div id="attendance-history">
-          <div class="empty-state">No attendance records</div>
-        </div>
-      </div>
-
-      <div class="glass-card">
-        <div class="section-title">
-          <h3>📋 Leave History</h3>
-          <button id="export-leave-btn" class="btn-secondary" style="width: auto; padding: 8px 16px;">📎 Export</button>
-        </div>
-        <div id="leave-history">
-          <div class="empty-state">No leave records</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="backup-tab" style="display:none;">
-      <div class="glass-card">
-        <h3>☁️ iCloud Drive</h3>
-        <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">Secure your data with iCloud backup</p>
         
-        <button id="backup-to-icloud" class="btn" style="background: linear-gradient(135deg, #5856d6, #4c4ab3);">💾 Backup to iCloud</button>
-        <button id="restore-from-icloud" class="btn btn-secondary" style="margin-top: 12px;">🔄 Restore from iCloud</button>
+        <div id="login-form">
+          <input type="email" id="login-email" placeholder="Email Address">
+          <input type="password" id="login-password" placeholder="Password">
+          <button id="login-btn" class="btn">Sign In</button>
+          <button id="show-register-btn" class="btn btn-secondary" style="margin-top: 12px;">Create New Account</button>
+        </div>
         
-        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-          <h4 style="margin-bottom: 12px; color: white;">📊 Data Stats</h4>
-          <div id="data-stats">
+        <div id="register-form" style="display:none;">
+          <input type="email" id="reg-email" placeholder="Email Address">
+          <input type="password" id="reg-password" placeholder="Password">
+          <input type="text" id="reg-name" placeholder="Full Name">
+          <button id="register-btn" class="btn">Register</button>
+          <button id="back-to-login-btn" class="btn btn-secondary" style="margin-top: 12px;">Back to Login</button>
+        </div>
+        
+        <div id="admin-setup" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+          <p style="color: #666; margin-bottom: 12px; text-align: center;">First time setup - Create Admin Account</p>
+          <button id="setup-admin-btn" class="btn btn-success">Setup Admin</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="app-section" style="display:none;">
+      <div class="user-info">
+        <div>
+          <div class="user-email" id="user-email"></div>
+          <div class="user-role" id="user-role"></div>
+          <div class="device-id" id="device-id-display"></div>
+          <div class="last-sync" id="last-sync-time">Last sync: Never</div>
+        </div>
+        <div class="logout-btn" id="logout-btn">Logout</div>
+      </div>
+
+      <div class="nav-tabs">
+        <div class="tab active" data-tab="attendance">✅ Check In/Out</div>
+        <div class="tab" data-tab="leave">📝 Leave</div>
+        <div class="tab" data-tab="history">📊 History</div>
+        <div class="tab" id="admin-tab-btn" data-tab="admin" style="display:none;">👑 Admin</div>
+      </div>
+
+      <!-- Attendance Tab -->
+      <div id="attendance-tab">
+        <div class="glass-card" style="text-align: center;">
+          <div id="status-badge" class="status-badge status-checked-out">● Checked Out</div>
+          <div id="current-status-text" style="color: #666;">Ready to start</div>
+          <div id="current-time" class="time-display">--:--:--</div>
+          <div id="location-status" class="location-info" style="margin-bottom: 12px;">📍 Getting location...</div>
+          <button id="check-in-btn" class="btn btn-location">📍 Check In with Location</button>
+          <button id="check-out-btn" class="btn btn-danger" style="display:none;">🔴 Check Out with Location</button>
+        </div>
+
+        <div class="glass-card">
+          <h3>📅 Today's Activity</h3>
+          <div id="today-activity"><div class="empty-state">No activity today</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>📈 Monthly Summary</h3>
+          <div id="summary-stats">
             <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-number">0</div>
-                <div class="stat-label">Records</div>
-              </div>
+              <div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Days Worked</div></div>
+              <div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Hours</div></div>
             </div>
           </div>
         </div>
-        
-        <button id="clear-all-data" class="btn-danger" style="margin-top: 20px; padding: 14px;">⚠️ Clear All Data</button>
+      </div>
+
+      <!-- Leave Tab -->
+      <div id="leave-tab" style="display:none;">
+        <div class="glass-card">
+          <h3>📝 Request Leave</h3>
+          <label>Start Date</label>
+          <input type="date" id="leave-start">
+          <label>End Date</label>
+          <input type="date" id="leave-end">
+          <label>Reason</label>
+          <textarea id="leave-reason" rows="3" placeholder="Sick, Vacation, Personal..."></textarea>
+          <button id="submit-leave-btn" class="btn">Submit Request</button>
+        </div>
+
+        <div class="glass-card">
+          <h3>⏳ Pending Requests</h3>
+          <div id="pending-leaves"><div class="empty-state">No pending requests</div></div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="history-tab" style="display:none;">
+        <div class="glass-card">
+          <div class="section-title">
+            <h3>📜 Attendance History (with Location)</h3>
+            <button id="export-attendance-btn" class="btn btn-secondary btn-small">Export CSV</button>
+          </div>
+          <div id="attendance-history"><div class="empty-state">No records</div></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="section-title">
+            <h3>📋 Leave History</h3>
+            <button id="export-leave-btn" class="btn btn-secondary btn-small">Export CSV</button>
+          </div>
+          <div id="leave-history"><div class="empty-state">No records</div></div>
+        </div>
+      </div>
+
+      <!-- Admin Tab -->
+      <div id="admin-tab-content" style="display:none;">
+        <div class="glass-card">
+          <h3>👤 My Attendance</h3>
+          <div id="admin-personal-attendance"><div class="empty-state">Loading...</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>👥 Pending Approvals</h3>
+          <div id="pending-users"><div class="empty-state">No pending users</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>👤 All Users</h3>
+          <div id="all-users"><div class="empty-state">Loading...</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>📊 All Attendance Records (with Location)</h3>
+          <div id="all-attendance"><div class="empty-state">Loading...</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>📋 All Leave Requests</h3>
+          <div id="all-leaves"><div class="empty-state">Loading...</div></div>
+        </div>
+
+        <div class="glass-card">
+          <h3>☁️ Google Drive Auto-Sync (Every 15 min)</h3>
+          <p style="color: #666; margin-bottom: 16px;">Data auto-syncs every 15 minutes. Last sync time shown above.</p>
+          <div class="stats-grid" style="margin-bottom: 16px;">
+            <div class="stat-card">
+              <div class="stat-number" id="sync-count">0</div>
+              <div class="stat-label">Times Synced</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="next-sync-timer">--:--</div>
+              <div class="stat-label">Next Sync</div>
+            </div>
+          </div>
+          <button id="manual-sync-btn" class="btn btn-google">🔄 Sync Now</button>
+          <button id="restore-from-drive-btn" class="btn btn-secondary" style="margin-top: 12px;">📥 Restore from Drive</button>
+        </div>
+
+        <div class="glass-card">
+          <h3>⚠️ System Tools</h3>
+          <button id="export-all-data" class="btn btn-secondary">📎 Export All Data (JSON)</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="sync-status" class="sync-status">✨ Ready</div>
 
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <h3>✏️ Edit Record</h3>
-      <label>Check In Time</label>
-      <input type="datetime-local" id="edit-checkin">
-      <label>Check Out Time</label>
-      <input type="datetime-local" id="edit-checkout">
-      <div class="modal-buttons">
-        <button id="saveEditBtn" class="btn" style="flex: 1;">Save Changes</button>
-        <button id="closeModalBtn" class="btn-secondary" style="flex: 1;">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <script src="app.js"></script>
   
-  <!-- Service Worker Registration for Offline Support -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ Service Worker registered! Offline support enabled.'))
-        .catch(err => console.log('❌ Service Worker registration failed:', err));
+      navigator.serviceWorker.register('/sw.js');
     }
-    
-    window.addEventListener('load', () => {
-      if (!navigator.onLine) {
-        document.getElementById('sync-status').textContent = '📡 Offline Mode';
-      }
-    });
-    
-    window.addEventListener('online', () => {
-      document.getElementById('sync-status').textContent = '✨ Online';
-    });
-    
-    window.addEventListener('offline', () => {
-      document.getElementById('sync-status').textContent = '📡 Offline Mode';
-    });
   </script>
 </body>
 </html>
