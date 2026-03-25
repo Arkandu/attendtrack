@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendtrack-v3';
+const CACHE_NAME = 'attendtrack-v7';
 const urlsToCache = [
   '/',
   '/index.html',
