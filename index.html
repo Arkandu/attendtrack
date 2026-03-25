@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="AttendTrack">
   <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/📍?style=apple">
   <link rel="manifest" href="manifest.json">
-  <title>AttendTrack | Location-Based Attendance</title>
+  <title>AttendTrack | Location-Based Attendance System</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -195,7 +195,6 @@
     .alert-success { background: #34c759; color: white; }
     .alert-warning { background: #ff9500; color: white; }
     .alert-error { background: #ff3b30; color: white; }
-    .alert-info { background: #5856d6; color: white; }
     .empty-state { text-align: center; padding: 40px; color: #999; }
     h3 { margin-bottom: 16px; color: #333; }
     .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -217,6 +216,14 @@
       font-size: 10px;
       color: #999;
       margin-top: 4px;
+    }
+    .drive-folder-info {
+      background: #e8f0fe;
+      padding: 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      color: #1a73e8;
     }
   </style>
 </head>
@@ -340,6 +347,13 @@
       <!-- Admin Tab -->
       <div id="admin-tab-content" style="display:none;">
         <div class="glass-card">
+          <div class="drive-folder-info">
+            📁 <strong>Google Drive Folder:</strong><br>
+            <code style="font-size: 11px;">attendtrack_master_data.json</code> saves to your Google Drive folder
+          </div>
+        </div>
+
+        <div class="glass-card">
           <h3>👤 My Attendance</h3>
           <div id="admin-personal-attendance"><div class="empty-state">Loading...</div></div>
         </div>
@@ -366,7 +380,7 @@
 
         <div class="glass-card">
           <h3>☁️ Google Drive Auto-Sync (Every 15 min)</h3>
-          <p style="color: #666; margin-bottom: 16px;">Data auto-syncs every 15 minutes. Last sync time shown above.</p>
+          <p style="color: #666; margin-bottom: 16px;">Data auto-syncs every 15 minutes. Save to your Google Drive folder.</p>
           <div class="stats-grid" style="margin-bottom: 16px;">
             <div class="stat-card">
               <div class="stat-number" id="sync-count">0</div>
@@ -377,7 +391,7 @@
               <div class="stat-label">Next Sync</div>
             </div>
           </div>
-          <button id="manual-sync-btn" class="btn btn-google">🔄 Sync Now</button>
+          <button id="manual-sync-btn" class="btn btn-google">🔄 Sync Now (Save to Drive)</button>
           <button id="restore-from-drive-btn" class="btn btn-secondary" style="margin-top: 12px;">📥 Restore from Drive</button>
         </div>
 
