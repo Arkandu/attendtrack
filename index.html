@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="AttendTrack">
   <link rel="apple-touch-icon" href="https://emojicdn.elk.sh/📍?style=apple">
   <link rel="manifest" href="manifest.json">
-  <title>AttendTrack | Location-Based Attendance System</title>
+  <title>AttendTrack | Complete Attendance System</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -71,6 +71,8 @@
     .btn-success { background: linear-gradient(135deg, #34c759, #30b350); }
     .btn-google { background: #4285f4; }
     .btn-location { background: linear-gradient(135deg, #5856d6, #4c4ab3); }
+    .btn-edit { background: linear-gradient(135deg, #ff9500, #ff7e00); padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
+    .btn-delete { background: linear-gradient(135deg, #ff3b30, #ff2d20); padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
     input, textarea, select {
       width: 100%;
       padding: 14px;
@@ -100,6 +102,15 @@
     .record-item {
       border-bottom: 1px solid #eee;
       padding: 12px 0;
+    }
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .record-actions {
+      display: flex;
+      gap: 8px;
     }
     .location-badge {
       background: #e9ecef;
@@ -199,8 +210,6 @@
     h3 { margin-bottom: 16px; color: #333; }
     .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .btn-small { width: auto; padding: 8px 16px; margin: 0; font-size: 13px; }
-    .btn-approve { background: #34c759; padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
-    .btn-reject { background: #ff3b30; padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
     .flex { display: flex; gap: 8px; }
     .mt-2 { margin-top: 8px; }
     .last-sync { font-size: 11px; color: #666; margin-top: 8px; text-align: center; }
@@ -212,19 +221,31 @@
       margin-top: 10px;
       word-break: break-all;
     }
-    .device-id {
-      font-size: 10px;
-      color: #999;
-      margin-top: 4px;
+    .device-id { font-size: 10px; color: #999; margin-top: 4px; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(20px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-    .drive-folder-info {
-      background: #e8f0fe;
-      padding: 12px;
-      border-radius: 16px;
-      font-size: 12px;
-      margin-bottom: 16px;
-      color: #1a73e8;
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white;
+      border-radius: 32px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
     }
+    .modal h3 { margin-bottom: 20px; }
+    .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -234,8 +255,7 @@
       <div class="glass-card">
         <div class="header">
           <h1>📍 AttendTrack</h1>
-          <p style="color: #666;">Location-Based Attendance System</p>
-          <p style="color: #999; font-size: 12px; margin-top: 8px;">Auto-sync every 15 minutes | Location tracking enabled</p>
+          <p style="color: #666;">Complete Attendance System</p>
         </div>
         
         <div id="login-form">
@@ -266,7 +286,6 @@
         <div>
           <div class="user-email" id="user-email"></div>
           <div class="user-role" id="user-role"></div>
-          <div class="device-id" id="device-id-display"></div>
           <div class="last-sync" id="last-sync-time">Last sync: Never</div>
         </div>
         <div class="logout-btn" id="logout-btn">Logout</div>
@@ -285,7 +304,7 @@
           <div id="status-badge" class="status-badge status-checked-out">● Checked Out</div>
           <div id="current-status-text" style="color: #666;">Ready to start</div>
           <div id="current-time" class="time-display">--:--:--</div>
-          <div id="location-status" class="location-info" style="margin-bottom: 12px;">📍 Getting location...</div>
+          <div id="location-status" class="location-info">📍 Ready</div>
           <button id="check-in-btn" class="btn btn-location">📍 Check In with Location</button>
           <button id="check-out-btn" class="btn btn-danger" style="display:none;">🔴 Check Out with Location</button>
         </div>
@@ -297,12 +316,7 @@
 
         <div class="glass-card">
           <h3>📈 Monthly Summary</h3>
-          <div id="summary-stats">
-            <div class="stats-grid">
-              <div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Days Worked</div></div>
-              <div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Hours</div></div>
-            </div>
-          </div>
+          <div id="summary-stats"><div class="stats-grid"><div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Days</div></div><div class="stat-card"><div class="stat-number">0</div><div class="stat-label">Hours</div></div></div></div>
         </div>
       </div>
 
@@ -318,7 +332,6 @@
           <textarea id="leave-reason" rows="3" placeholder="Sick, Vacation, Personal..."></textarea>
           <button id="submit-leave-btn" class="btn">Submit Request</button>
         </div>
-
         <div class="glass-card">
           <h3>⏳ Pending Requests</h3>
           <div id="pending-leaves"><div class="empty-state">No pending requests</div></div>
@@ -329,16 +342,15 @@
       <div id="history-tab" style="display:none;">
         <div class="glass-card">
           <div class="section-title">
-            <h3>📜 Attendance History (with Location)</h3>
-            <button id="export-attendance-btn" class="btn btn-secondary btn-small">Export CSV</button>
+            <h3>📜 Attendance History</h3>
+            <button id="export-attendance-btn" class="btn-secondary btn-small">Export CSV</button>
           </div>
           <div id="attendance-history"><div class="empty-state">No records</div></div>
         </div>
-
         <div class="glass-card">
           <div class="section-title">
             <h3>📋 Leave History</h3>
-            <button id="export-leave-btn" class="btn btn-secondary btn-small">Export CSV</button>
+            <button id="export-leave-btn" class="btn-secondary btn-small">Export CSV</button>
           </div>
           <div id="leave-history"><div class="empty-state">No records</div></div>
         </div>
@@ -347,57 +359,29 @@
       <!-- Admin Tab -->
       <div id="admin-tab-content" style="display:none;">
         <div class="glass-card">
-          <div class="drive-folder-info">
-            📁 <strong>Google Drive Folder:</strong><br>
-            <code style="font-size: 11px;">attendtrack_master_data.json</code> saves to your Google Drive folder
-          </div>
-        </div>
-
-        <div class="glass-card">
-          <h3>👤 My Attendance</h3>
-          <div id="admin-personal-attendance"><div class="empty-state">Loading...</div></div>
-        </div>
-
-        <div class="glass-card">
           <h3>👥 Pending Approvals</h3>
           <div id="pending-users"><div class="empty-state">No pending users</div></div>
         </div>
-
         <div class="glass-card">
           <h3>👤 All Users</h3>
           <div id="all-users"><div class="empty-state">Loading...</div></div>
         </div>
-
         <div class="glass-card">
-          <h3>📊 All Attendance Records (with Location)</h3>
+          <h3>📊 All Attendance Records</h3>
           <div id="all-attendance"><div class="empty-state">Loading...</div></div>
         </div>
-
         <div class="glass-card">
           <h3>📋 All Leave Requests</h3>
           <div id="all-leaves"><div class="empty-state">Loading...</div></div>
         </div>
-
         <div class="glass-card">
-          <h3>☁️ Google Drive Auto-Sync (Every 15 min)</h3>
-          <p style="color: #666; margin-bottom: 16px;">Data auto-syncs every 15 minutes. Save to your Google Drive folder.</p>
+          <h3>☁️ Google Drive Auto-Sync</h3>
+          <p style="color: #666; margin-bottom: 16px;">Auto-syncs every 15 minutes directly to Google Drive</p>
           <div class="stats-grid" style="margin-bottom: 16px;">
-            <div class="stat-card">
-              <div class="stat-number" id="sync-count">0</div>
-              <div class="stat-label">Times Synced</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number" id="next-sync-timer">--:--</div>
-              <div class="stat-label">Next Sync</div>
-            </div>
+            <div class="stat-card"><div class="stat-number" id="sync-count">0</div><div class="stat-label">Synced</div></div>
+            <div class="stat-card"><div class="stat-number" id="next-sync-timer">--:--</div><div class="stat-label">Next Sync</div></div>
           </div>
-          <button id="manual-sync-btn" class="btn btn-google">🔄 Sync Now (Save to Drive)</button>
-          <button id="restore-from-drive-btn" class="btn btn-secondary" style="margin-top: 12px;">📥 Restore from Drive</button>
-        </div>
-
-        <div class="glass-card">
-          <h3>⚠️ System Tools</h3>
-          <button id="export-all-data" class="btn btn-secondary">📎 Export All Data (JSON)</button>
+          <button id="manual-sync-btn" class="btn btn-google">🔄 Sync Now</button>
         </div>
       </div>
     </div>
@@ -405,12 +389,26 @@
 
   <div id="sync-status" class="sync-status">✨ Ready</div>
 
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h3>✏️ Edit Attendance Record</h3>
+      <label>Date</label>
+      <input type="date" id="edit-date">
+      <label>Check In Time</label>
+      <input type="time" id="edit-checkin-time">
+      <label>Check Out Time</label>
+      <input type="time" id="edit-checkout-time">
+      <div class="modal-buttons">
+        <button id="save-edit-btn" class="btn" style="flex:1;">Save Changes</button>
+        <button id="close-modal-btn" class="btn-secondary" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
-  
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   </script>
 </body>
 </html>
